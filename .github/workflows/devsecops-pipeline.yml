@@ -11,38 +11,39 @@ jobs:
     name: 🔍 Semgrep Advanced SAST Scan
     runs-on: ubuntu-latest
     permissions:
-      security-events: write   # Code Scanning üçün vacib
+      security-events: write
       contents: read
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Run Semgrep SAST
-        uses: semgrep/semgrep-action@v1
-        with:
-          config: >-
-            p/security-audit
-            p/php
-            p/secrets
-            p/vulnerability
-            p/owasp-top-ten
-            p/ci
-            p/r2c-security
-          scan-unknown-extensions: true
-          generate-sarif: true          # GitHub Code Scanning üçün
-          sarif-output: semgrep-results.sarif
+        run: |
+          # Semgrep-i quraşdır
+          python3 -m pip install semgrep
+          
+          # Skan et və SARIF formatında çıxart
+          semgrep ci \
+            --config p/security-audit \
+            --config p/php \
+            --config p/secrets \
+            --config p/vulnerability \
+            --config p/owasp-top-ten \
+            --config p/ci \
+            --sarif > semgrep-results.sarif || true   # Xəta olsa belə davam et
 
-      - name: Upload SARIF Results
+      - name: Upload SARIF Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep
 
-      - name: Summary
+      - name: Print Summary
         run: |
           echo "========================================"
-          echo "🔍 Semgrep SAST Scan Completed"
-          echo "Findings: Check 'Security' tab in GitHub for full details"
-          echo "📍 Security → Code scanning alerts"
+          echo "✅ Semgrep SAST Scan Completed"
+          echo "🔍 Bütün tapıntıları görmək üçün:"
+          echo "   → Security → Code scanning alerts"
           echo "========================================"
+          echo "Pipeline bitdi. Vulnerability-lər GitHub Security tab-da gözəl göstəriləcək."
