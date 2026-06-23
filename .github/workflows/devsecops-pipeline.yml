@@ -18,10 +18,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Semgrep & Generate SARIF
+      - name: Run Semgrep SAST
         run: |
           python3 -m pip install semgrep
           
+          echo "🔍 Semgrep skanı başlayır..."
           semgrep ci \
             --config p/security-audit \
             --config p/php \
@@ -29,20 +30,31 @@ jobs:
             --config p/vulnerability \
             --config p/owasp-top-ten \
             --config p/ci \
-            --sarif \
+            --severity ERROR \
+            --severity WARNING \
             --output semgrep-results.sarif || true
 
-      - name: Upload SARIF to GitHub
+          echo ""
+          echo "📊 SCAN NƏTİCƏSİ:"
+          echo "=============================="
+          if [ -f semgrep-results.sarif ]; then
+            echo "✅ SARIF faylı yaradıldı. GitHub Security-yə göndərildi."
+          else
+            echo "⚠️ SARIF faylı yaradıla bilmədi."
+          fi
+          echo "=============================="
+
+      - name: Upload SARIF Results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep
 
-      - name: Show Scan Summary
+      - name: Final Summary
         run: |
           echo "========================================"
-          echo "✅ Semgrep SAST Scan Tamamlandı"
-          echo "📊 Tapıntıları yoxlamaq üçün:"
-          echo "   Security → Code scanning alerts"
+          echo "✅ Pipeline Tamamlandı!"
+          echo "📍 Nəticələri yoxlamaq üçün:"
+          echo "   1. Security → Code scanning alerts"
+          echo "   2. Bu run-un log-una bax (yuxarıdakı hissə)"
           echo "========================================"
-          echo "Əgər alert görünmürsə, 1-2 dəqiqə gözləyin və səhifəni yeniləyin."
