@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
+        uses: semgrep/semgrep-action@v1
         with:
           config: p/security-audit
 
@@ -58,12 +58,15 @@ jobs:
         env:
           GITLEAKS_ENABLE_COMMENTS: false
         with:
-          # DVWA-da bilinən vulnerable faylları exclude edirik
           config: |
-            [[rules]]
-            description = "Exclude DVWA known test files"
-            regex = "(?i)(help\.php|recaptchahlib\.php)"
-            path = "vulnerabilities/|external/"
+            [[allowlist]]
+            description = "Ignore DVWA test secrets"
+            paths = [
+              '''vulnerabilities/csrf/help/help\.php''',
+              '''external/recaptcha/recaptchahlib\.php''',
+              '''^vulnerabilities/''',
+              '''^external/'''
+            ]
 
   container-scan:
     name: 🐳 Docker Security Scan (Trivy)
@@ -82,12 +85,12 @@ jobs:
           fi
 
       - name: Run Trivy Scan
-        uses: aquasecurity/trivy-action@master   # ← Yeniləndi
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: dvwa:latest
           format: table
           severity: HIGH,CRITICAL
-          exit-code: 0        # ← DVWA üçün fail etməsin
+          exit-code: 0
           ignore-unfixed: true
 
   security-report:
@@ -98,6 +101,6 @@ jobs:
       - name: Print Summary
         run: |
           echo "=================================="
-          echo "✅ DVWA DevSecOps Pipeline Completed"
+          echo "✅ DVWA Advanced DevSecOps Pipeline Completed"
           echo "SAST + Dependencies + Secrets + Container Scan Done"
           echo "=================================="
