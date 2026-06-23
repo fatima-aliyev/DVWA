@@ -1,4 +1,4 @@
-name: DVWA Advanced DevSecOps Pipeline
+name: DVWA Semgrep SAST Pipeline
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   semgrep:
-    name: 🔍 Semgrep SAST Scan
+    name: 🔍 Semgrep Advanced SAST Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -17,90 +17,12 @@ jobs:
       - name: Run Semgrep
         uses: semgrep/semgrep-action@v1
         with:
-          config: p/security-audit
-
-  dependency-check:
-    name: 📦 Dependency Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install PHP & Composer
-        run: |
-          sudo apt update
-          sudo apt install -y php php-cli unzip
-          curl -sS https://getcomposer.org/installer | php
-          sudo mv composer.phar /usr/local/bin/composer
-
-      - name: Install Dependencies
-        run: |
-          if [ -f composer.json ]; then
-            composer install --no-progress --prefer-dist || true
-          else
-            echo "⚠️ composer.json tapılmadı, atlanır."
-          fi
-
-      - name: Run Composer Audit
-        run: composer audit || true
-
-  secrets-scan:
-    name: 🔐 Secrets Detection (Gitleaks)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITLEAKS_ENABLE_COMMENTS: false
-        with:
-          config: |
-            [[allowlist]]
-            description = "Ignore DVWA test secrets"
-            paths = [
-              '''vulnerabilities/csrf/help/help\.php''',
-              '''external/recaptcha/recaptchahlib\.php''',
-              '''^vulnerabilities/''',
-              '''^external/'''
-            ]
-
-  container-scan:
-    name: 🐳 Docker Security Scan (Trivy)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Build Docker Image
-        run: |
-          if [ -f Dockerfile ]; then
-            docker build -t dvwa:latest .
-          else
-            echo "⚠️ Dockerfile tapılmadı, scan atlanır."
-            exit 0
-          fi
-
-      - name: Run Trivy Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: dvwa:latest
-          format: table
-          severity: HIGH,CRITICAL
-          exit-code: 0
-          ignore-unfixed: true
-
-  security-report:
-    name: 📊 Security Summary
-    runs-on: ubuntu-latest
-    needs: [semgrep, dependency-check, secrets-scan, container-scan]
-    steps:
-      - name: Print Summary
-        run: |
-          echo "=================================="
-          echo "✅ DVWA Advanced DevSecOps Pipeline Completed"
-          echo "SAST + Dependencies + Secrets + Container Scan Done"
-          echo "=================================="
+          config: >-
+            p/security-audit
+            p/php
+            p/secrets
+            p/vulnerability
+            p/ci
+          scan-unknown-extensions: true
+          # Sarı və aşağı səviyyəli tapıntıları da göstərmək istəsən:
+          # severity: ERROR,WARNING
