@@ -14,26 +14,25 @@ jobs:
       security-events: write
       contents: read
     steps:
-      # Ən son Node.js mühitinə tam uyğun versiya
+      # 1. Kodu GitHub Runner-a kopyalayırıq
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 2. Semgrep-i quraşdırıb işə salırıq (Düzəldilmiş qaydalar ilə)
       - name: Run Semgrep SAST
         continue-on-error: true 
         run: |
           python3 -m pip install semgrep --quiet
           echo "🔍 Semgrep skanı başlayır..."
           semgrep ci \
+            --config p/default \
             --config p/security-audit \
             --config p/php \
             --config p/secrets \
-            --config p/vulnerability \
-            --config p/owasp-top-ten \
-            --config p/ci \
             --sarif \
             --sarif-output semgrep-results.sarif
 
-      # Node 24 dəstəkli ən son upload-artifact versiyası
+      # 3. SARIF faylını Actions panelindən yükləyə bilmək üçün arxivləyirik (Artifact)
       - name: 📦 Upload SARIF as Artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -41,7 +40,7 @@ jobs:
           name: semgrep-raw-results
           path: semgrep-results.sarif
 
-      # v3-dən v4-ə keçid etdik (Xəbərdarlığı aradan qaldırır)
+      # 4. Nəticələri GitHub Security (Code Scanning) bölməsinə göndəririk (v4 versiyası ilə)
       - name: Upload SARIF Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
         with:
