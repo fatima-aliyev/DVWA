@@ -1,4 +1,4 @@
-name: DVWA Semgrep SAST Pipeline
+name: DVWA Advanced SAST Pipeline
 
 on:
   push:
@@ -10,11 +10,15 @@ jobs:
   semgrep:
     name: 🔍 Semgrep Advanced SAST Scan
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # Code Scanning üçün vacib
+      contents: read
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Run Semgrep
+      - name: Run Semgrep SAST
         uses: semgrep/semgrep-action@v1
         with:
           config: >-
@@ -22,7 +26,23 @@ jobs:
             p/php
             p/secrets
             p/vulnerability
+            p/owasp-top-ten
             p/ci
+            p/r2c-security
           scan-unknown-extensions: true
-          # Sarı və aşağı səviyyəli tapıntıları da göstərmək istəsən:
-          # severity: ERROR,WARNING
+          generate-sarif: true          # GitHub Code Scanning üçün
+          sarif-output: semgrep-results.sarif
+
+      - name: Upload SARIF Results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep
+
+      - name: Summary
+        run: |
+          echo "========================================"
+          echo "🔍 Semgrep SAST Scan Completed"
+          echo "Findings: Check 'Security' tab in GitHub for full details"
+          echo "📍 Security → Code scanning alerts"
+          echo "========================================"
