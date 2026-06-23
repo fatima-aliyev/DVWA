@@ -20,7 +20,7 @@ jobs:
 
       - name: Run Semgrep SAST
         run: |
-          python3 -m pip install semgrep
+          python3 -m pip install semgrep --quiet
           
           echo "🔍 Semgrep skanı başlayır..."
           semgrep ci \
@@ -30,31 +30,29 @@ jobs:
             --config p/vulnerability \
             --config p/owasp-top-ten \
             --config p/ci \
-            --severity ERROR \
-            --severity WARNING \
-            --output semgrep-results.sarif || true
+            --sarif \
+            --sarif-output semgrep-results.sarif || true
 
           echo ""
           echo "📊 SCAN NƏTİCƏSİ:"
-          echo "=============================="
           if [ -f semgrep-results.sarif ]; then
-            echo "✅ SARIF faylı yaradıldı. GitHub Security-yə göndərildi."
+            echo "✅ SARIF faylı uğurla yaradıldı!"
+            ls -lh semgrep-results.sarif
           else
             echo "⚠️ SARIF faylı yaradıla bilmədi."
           fi
-          echo "=============================="
 
-      - name: Upload SARIF Results
+      - name: Upload SARIF Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep
+        if: always()
 
       - name: Final Summary
         run: |
           echo "========================================"
-          echo "✅ Pipeline Tamamlandı!"
-          echo "📍 Nəticələri yoxlamaq üçün:"
-          echo "   1. Security → Code scanning alerts"
-          echo "   2. Bu run-un log-una bax (yuxarıdakı hissə)"
+          echo "✅ DVWA Semgrep SAST Pipeline Tamamlandı!"
+          echo "📍 Nəticələri burada yoxla:"
+          echo "   Security → Code scanning alerts"
           echo "========================================"
