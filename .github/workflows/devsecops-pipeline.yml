@@ -7,14 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-
-  # =========================
-  # 1. SAST (Semgrep)
-  # =========================
   semgrep:
     name: 🔍 Semgrep SAST Scan
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -24,40 +19,29 @@ jobs:
         with:
           config: p/security-audit
 
-  # =========================
-  # 2. Dependency Scan (PHP Composer)
-  # =========================
   dependency-check:
     name: 📦 Dependency Security Scan
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install PHP
+      - name: Install PHP & Composer
         run: |
           sudo apt update
           sudo apt install -y php php-cli unzip
-
-      - name: Install Composer
-        run: |
           curl -sS https://getcomposer.org/installer | php
           sudo mv composer.phar /usr/local/bin/composer
 
       - name: Install Dependencies
-        run: composer install || true
+        run: composer install --no-progress --prefer-dist || true
 
       - name: Run Composer Audit
         run: composer audit || true
 
-  # =========================
-  # 3. Secrets Scan
-  # =========================
   secrets-scan:
     name: 🔐 Secrets Detection (Gitleaks)
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -69,13 +53,9 @@ jobs:
         env:
           GITLEAKS_ENABLE_COMMENTS: false
 
-  # =========================
-  # 4. Container Security (Trivy)
-  # =========================
   container-scan:
     name: 🐳 Docker Security Scan (Trivy)
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -89,19 +69,16 @@ jobs:
           image-ref: dvwa:latest
           format: table
           severity: HIGH,CRITICAL
+          exit-code: 1  # HIGH/CRITICAL varsa pipeline fail olsun
 
-  # =========================
-  # 5. Security Summary
-  # =========================
   security-report:
     name: 📊 Security Summary
     runs-on: ubuntu-latest
     needs: [semgrep, dependency-check, secrets-scan, container-scan]
-
     steps:
       - name: Print Summary
         run: |
           echo "=================================="
-          echo "DVWA DevSecOps Pipeline Completed"
+          echo "✅ DVWA DevSecOps Pipeline Completed"
           echo "SAST + Dependencies + Secrets + Container Scan Done"
           echo "=================================="
