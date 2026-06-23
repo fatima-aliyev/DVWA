@@ -13,15 +13,16 @@ jobs:
     permissions:
       security-events: write
       contents: read
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Run Semgrep SAST
+        # || true hissəsini sildik ki, əgər skan xəta verərsə loqlarda real səbəbi görək.
+        # Amma pipeline-ın tam çökməməsi üçün continue-on-error istifadə edirik.
+        continue-on-error: true 
         run: |
           python3 -m pip install semgrep --quiet
-          
           echo "🔍 Semgrep skanı başlayır..."
           semgrep ci \
             --config p/security-audit \
@@ -31,16 +32,15 @@ jobs:
             --config p/owasp-top-ten \
             --config p/ci \
             --sarif \
-            --sarif-output semgrep-results.sarif || true
+            --sarif-output semgrep-results.sarif
 
-          echo ""
-          echo "📊 SCAN NƏTİCƏSİ:"
-          if [ -f semgrep-results.sarif ]; then
-            echo "✅ SARIF faylı uğurla yaradıldı!"
-            ls -lh semgrep-results.sarif
-          else
-            echo "⚠️ SARIF faylı yaradıla bilmədi."
-          fi
+      # Bu addım yaradılmış SARIF faylını birbaşa GitHub Actions panelindən yükləməyə imkan verəcək
+      - name: 📦 Upload SARIF as Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-raw-results
+          path: semgrep-results.sarif
 
       - name: Upload SARIF Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
@@ -48,11 +48,3 @@ jobs:
           sarif_file: semgrep-results.sarif
           category: semgrep
         if: always()
-
-      - name: Final Summary
-        run: |
-          echo "========================================"
-          echo "✅ DVWA Semgrep SAST Pipeline Tamamlandı!"
-          echo "📍 Nəticələri burada yoxla:"
-          echo "   Security → Code scanning alerts"
-          echo "========================================"
